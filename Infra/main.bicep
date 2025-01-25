@@ -1,7 +1,11 @@
 ﻿param location string = resourceGroup().location
 param storageAccountName string = 'weathergeneratorstorage'
-param functionAppPrefix string = 'weatherimagegenerator'
-param existingAppServicePlanName string = 'your-existing-plan-name'
+param functionAppName string = 'weatherimagegeneratorfunctionapp' // ✅ Ensures unique function app name
+
+var startJobFunctionName = '${prefix}StartJob'
+var processJobFunctionName = '${prefix}ProcessJob'
+var generateImageFunctionName = '${prefix}GenerateImage'
+var fetchResultsFunctionName = '${prefix}FetchResults'
 
 
 // ✅ Reference existing storage account
@@ -9,69 +13,7 @@ resource existingStorageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' e
   name: storageAccountName
 }
 
-resource serverFarm 'Microsoft.Web/serverfarms@2021-03-01' existing = {
-  name: existingAppServicePlanName
-}
-
-
-// ✅ Function App (Shared for All Functions)
-resource functionApp 'Microsoft.Web/sites@2021-02-01' = {
-  name: '${functionAppPrefix}-functionapp'  // ✅ Fixed Naming
-  location: location
-  kind: 'functionapp'
-  properties: {
-    serverFarmId: serverFarm.id  // ✅ Links to the Consumption Plan
-    siteConfig: {
-      appSettings: [
-        { name: 'AzureWebJobsStorage', value: existingStorageAccount.listKeys().keys[0].value }  // ✅ Correct Storage Reference
-        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~8' }  // ✅ Uses .NET 8
-        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }  // ✅ Ensures correct runtime
-      ]
-    }
-  }
-  identity: {
-    type: 'SystemAssigned'
-  }
-}
-
-// ✅ Deploy Individual Functions Dynamically
-var functionNames = [
-  'StartJob'
-  'ProcessJob'
-  'GenerateImage'
-  'FetchResults'
-]
-
-resource functionApps 'Microsoft.Web/sites/functions@2021-03-01' = [for functionName in functionNames: {
-  parent: functionApp
-  name: functionName
-  properties: {
-    config: {
-      bindings: [
-        {
-          type: functionName == 'StartJob' ? 'httpTrigger' : 'queueTrigger'
-          direction: 'in'
-          authLevel: functionName == 'StartJob' ? 'anonymous' : ''
-          methods: functionName == 'StartJob' ? ['post'] : []
-          queueName: functionName != 'StartJob' ? 'start-job-queue' : ''
-          connection: 'AzureWebJobsStorage'
-        }
-      ]
-    }
-  }
-}]
-
-// ✅ Define Application Insights
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: '${functionAppPrefix}-appinsights'
-  location: location
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-  }
-}
-
-// ✅ Reference Existing Storage Services (Queues, Tables, Blobs)
+// ✅ Declare storage services (required for referencing queues, tables, and blobs)
 resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2021-09-01' existing = {
   parent: existingStorageAccount
   name: 'default'
@@ -87,7 +29,7 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2021-09-01'
   name: 'default'
 }
 
-// ✅ Reference Existing Queues, Table, and Blob Container (Used Correctly)
+// ✅ Reference existing queues, table, and blob container
 resource queueStartJob 'Microsoft.Storage/storageAccounts/queueServices/queues@2021-09-01' existing = {
   parent: queueService
   name: 'start-job-queue'
@@ -106,4 +48,35 @@ resource tableStorage 'Microsoft.Storage/storageAccounts/tableServices/tables@20
 resource blobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-09-01' existing = {
   parent: blobService
   name: 'weather-images'
+}
+
+// ✅ Function App Without ServerFarm (Uses Built-in Consumption Plan)
+resource functionApp 'Microsoft.Web/sites@2021-02-01' = {
+  name: functionAppName
+  location: location
+  kind: 'functionapp'
+  properties: {
+    serverFarmId: ''  // ✅ Empty value ensures Consumption Plan is used
+    siteConfig: {
+  appSettings: [
+    { name: 'AzureWebJobsStorage', value: existingStorageAccount.properties.primaryEndpoints.blob }
+    { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~8' }
+    { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet' }
+  ]
+}
+
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+}
+
+// ✅ Define Application Insights
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: '${functionAppName}-appinsights'
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+  }
 }
