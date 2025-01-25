@@ -1,0 +1,23 @@
+﻿### 🔹 1. Start a Weather Image Generation Job
+# Starts processing weather images for all stations.
+POST https://weatherimagegenerator-functionapp.azurewebsites.net/api/StartJob
+
+### 🔹 2. Check Job Status
+# Retrieves the status of the job (Replace {jobId} with actual job ID)
+GET http://weatherfunction1968490754.azurewebsites.net/api/job-status/{jobId}
+
+### 🔹 3. Fetch Generated Images
+# Fetches images after processing is complete (Replace {jobId} with actual job ID)
+GET http://weatherfunction1968490754.azurewebsites.net/api/fetch-images/{jobId}
+
+### 🔹 4. Trigger Azure Function Locally (If Running in Localhost)
+# Use this if you are testing locally with `func start`
+GET http://localhost:7071/api/start-job
+
+### 🔹 5. Get Job Status Locally
+# Checks the job status locally
+GET http://localhost:7071/api/job-status/{jobId}
+
+### 🔹 6. Get Processed Images Locally
+# Fetches generated images stored in Blob Storage
+GET http://localhost:7071/api/fetch-images/{jobId}

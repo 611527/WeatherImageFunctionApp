@@ -1,0 +1,10 @@
+{
+  "description": {
+    "language": "dotnet-isolated",
+    "extensions": [ ".dll" ],
+    "defaultExecutablePath": "{WorkerRoot}WeatherImageFunctionApp.exe",
+    "defaultWorkerPath": "WeatherImageFunctionApp.exe",
+    "workerIndexing": "true",
+    "canUsePlaceholder": true
+  }
+}

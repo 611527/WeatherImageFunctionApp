@@ -1,0 +1,123 @@
+[
+  {
+    "name": "FetchImages",
+    "scriptFile": "WeatherImageFunctionApp.exe",
+    "entryPoint": "WeatherImageFunctionApp.Functions.FetchImages.Run",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "req",
+        "direction": "In",
+        "type": "httpTrigger",
+        "authLevel": "Anonymous",
+        "methods": [
+          "get"
+        ],
+        "route": "fetch-images/{jobId}",
+        "properties": {}
+      },
+      {
+        "name": "$return",
+        "type": "http",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "name": "GetJobStatus",
+    "scriptFile": "WeatherImageFunctionApp.exe",
+    "entryPoint": "WeatherImageFunctionApp.Functions.JobStatusFunction.GetStatus",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "req",
+        "direction": "In",
+        "type": "httpTrigger",
+        "authLevel": "Anonymous",
+        "methods": [
+          "get"
+        ],
+        "route": "job-status/{jobId}",
+        "properties": {}
+      },
+      {
+        "name": "$return",
+        "type": "http",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "name": "ProcessImageQueue",
+    "scriptFile": "WeatherImageFunctionApp.exe",
+    "entryPoint": "WeatherImageFunctionApp.Functions.ProcessImageQueue.Run",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "queueMessage",
+        "direction": "In",
+        "type": "queueTrigger",
+        "dataType": "String",
+        "queueName": "process-image-queue",
+        "connection": "AzureWebJobsStorage",
+        "properties": {}
+      }
+    ]
+  },
+  {
+    "name": "StartJob",
+    "scriptFile": "WeatherImageFunctionApp.exe",
+    "entryPoint": "WeatherImageFunctionApp.Functions.StartJob.Run",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "req",
+        "direction": "In",
+        "type": "httpTrigger",
+        "authLevel": "Anonymous",
+        "methods": [
+          "post"
+        ],
+        "route": "start-job",
+        "properties": {}
+      },
+      {
+        "name": "$return",
+        "type": "http",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "name": "StartJobProcessor",
+    "scriptFile": "WeatherImageFunctionApp.exe",
+    "entryPoint": "WeatherImageFunctionApp.Functions.StartJobProcessor.Run",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "queueMessage",
+        "direction": "In",
+        "type": "queueTrigger",
+        "dataType": "String",
+        "queueName": "start-job-queue",
+        "connection": "AzureWebJobsStorage",
+        "properties": {}
+      }
+    ]
+  }
+]
