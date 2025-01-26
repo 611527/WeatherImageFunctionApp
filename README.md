@@ -7,33 +7,9 @@ The application supports **asynchronous job processing** using **Azure Queue Sto
 
 ##  Features
 **Public API** to request weather images  
-**Queue-based background processing** for efficiency  
+**Queue-based background processing**
 **Azure Blob Storage** for image storage & retrieval  
 **Weather Data from Buienradar API**  
 **Unsplash API** for fetching base images  
-**Azure DevOps Deployment** using **Bicep & PowerShell**  
+**Azure DevOps Deployment**
 **HTTP API documentation** using `.http` files  
-
----
-
-## Project Structure
-```bash
-WeatherImageFunctionApp/
-├── infra/                  # Infrastructure as Code (Bicep Templates)
-│   ├── main.bicep          # Deploys Function App, Storage, and Queues
-│   ├── deploy.ps1          # PowerShell script for automated deployment
-│
-├── src/                    # Function App Source Code
-│   ├── FetchImage.cs       # Fetches weather images from blob storage
-│   ├── JobStatusFunction.cs # Checks the status of background jobs
-│   ├── ProcessImageQueue.cs # Processes images from the queue
-│   ├── StartJob.cs         # Handles HTTP request to start the job
-│   ├── StartJobProcessor.cs # Processes job queue messages
-│   ├── local.settings.json # Local configuration for function app
-│   ├── Program.cs          # Entry point for Azure Functions app
-│
-├── docs/                   # API Documentation
-│   ├── init.http           # HTTP file for API testing (VS Code / Postman)
-│
-├── .gitignore              # Git ignore file
-├── README.md               # Project documentation (this file)
