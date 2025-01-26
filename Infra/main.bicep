@@ -1,82 +1,54 @@
 ﻿param location string = resourceGroup().location
-param storageAccountName string = 'weathergeneratorstorage'
-param functionAppName string = 'weatherimagegeneratorfunctionapp' // ✅ Ensures unique function app name
 
-var startJobFunctionName = '${prefix}StartJob'
-var processJobFunctionName = '${prefix}ProcessJob'
-var generateImageFunctionName = '${prefix}GenerateImage'
-var fetchResultsFunctionName = '${prefix}FetchResults'
+var prefix = 'weatherImageApp'
+var serverFarmName = '${prefix}sf'
+var storageAccountName = 'weathergeneratorstorage'
 
+var functionAppName = '${prefix}-functions'
 
-// ✅ Reference existing storage account
-resource existingStorageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
+resource serverFarm 'Microsoft.Web/serverfarms@2021-03-01' = {
+  name: serverFarmName
+  location: location
+  tags: resourceGroup().tags
+  sku: {
+    tier: 'Consumption'
+    name: 'Y1'
+  }
+  kind: 'elastic'
+}
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
   name: storageAccountName
 }
 
-// ✅ Declare storage services (required for referencing queues, tables, and blobs)
-resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2021-09-01' existing = {
-  parent: existingStorageAccount
-  name: 'default'
-}
+var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
 
-resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2021-09-01' existing = {
-  parent: existingStorageAccount
-  name: 'default'
-}
-
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2021-09-01' existing = {
-  parent: existingStorageAccount
-  name: 'default'
-}
-
-// ✅ Reference existing queues, table, and blob container
-resource queueStartJob 'Microsoft.Storage/storageAccounts/queueServices/queues@2021-09-01' existing = {
-  parent: queueService
-  name: 'start-job-queue'
-}
-
-resource queueProcessImage 'Microsoft.Storage/storageAccounts/queueServices/queues@2021-09-01' existing = {
-  parent: queueService
-  name: 'process-image-queue'
-}
-
-resource tableStorage 'Microsoft.Storage/storageAccounts/tableServices/tables@2021-09-01' existing = {
-  parent: tableService
-  name: 'JobStatus'
-}
-
-resource blobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-09-01' existing = {
-  parent: blobService
-  name: 'weather-images'
-}
-
-// ✅ Function App Without ServerFarm (Uses Built-in Consumption Plan)
-resource functionApp 'Microsoft.Web/sites@2021-02-01' = {
+resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
   name: functionAppName
   location: location
+  tags: resourceGroup().tags
   kind: 'functionapp'
+  identity: { type: 'SystemAssigned' }
   properties: {
-    serverFarmId: ''  // ✅ Empty value ensures Consumption Plan is used
-    siteConfig: {
-  appSettings: [
-    { name: 'AzureWebJobsStorage', value: existingStorageAccount.properties.primaryEndpoints.blob }
-    { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~8' }
-    { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet' }
-  ]
-}
-
-  }
-  identity: {
-    type: 'SystemAssigned'
+    serverFarmId: serverFarm.id
+    siteConfig: { FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated' }
+    dependsOn: [serverFarm]
   }
 }
 
-// ✅ Define Application Insights
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: '${functionAppName}-appinsights'
-  location: location
-  kind: 'web'
+resource functionAppSettings 'Microsoft.Web/sites/config@2021-03-01' = {
+  name: '${functionAppName}/appsettings'
   properties: {
-    Application_Type: 'web'
+    FUNCTIONS_EXTENSION_VERSION: '~4'
+    FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
+    WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
+    WEBSITE_RUN_FROM_PACKAGE: '1'
+    AzureWebJobsStorage: storageAccountConnectionString
+    JobQueueName: 'start-job-queue'
+    ProcessImageQueueName: 'process-image-queue'
+    BlobContainerName: 'weather-images'
+    TableStorageConnectionString: storageAccountConnectionString
+    TableName: 'JobStatus'
+    unsplashApiKey: 'XrTzEuj1JB6o3mR4N1T5xgnAUN1hnLLso8aSoAHBRV4'
   }
 }
